@@ -1,4 +1,4 @@
-module flibusta-go
+module flibusta-cli
 
 go 1.16
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"flibusta-go/pkg/client"
+	"flibusta-cli/pkg/client"
 	"fmt"
 	"github.com/urfave/cli/v2"
 	"io/ioutil"
@@ -73,7 +73,7 @@ func main() {
 						Name:    "format",
 						Aliases: []string{"f"},
 						Value:   defaultBookFormat,
-						Usage:   "Format to download",
+						Usage:   "Format to download: mobi|epub|fb2",
 						EnvVars: []string{"FLIBUSTA_PREFERRED_FORMAT"},
 					},
 				},

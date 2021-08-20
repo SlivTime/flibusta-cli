@@ -1,7 +1,6 @@
 package client
 
 import (
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -9,10 +8,12 @@ import (
 	"strings"
 )
 
+const defaultHost = "flibustahezeous3.onion"
+
 func getHost() (host string) {
-	host = os.Getenv("FLIBUSTA_HOST")
-	if host == "" {
-		log.Fatal("Missing FLIBUSTA_HOST in environment")
+	host, exists := os.LookupEnv("FLIBUSTA_HOST")
+	if !exists {
+		return defaultHost
 	}
 	return host
 }
