@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/SlivTime/flibusta-cli/pkg/client"
+	"github.com/slivtime/flibusta-cli/pkg/client"
 	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"log"

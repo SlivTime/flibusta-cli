@@ -14,7 +14,7 @@ to grant access. By default it binds http proxy to port 8118.
 All configuration can be done via Environment, but it should work with Torproxy with default ports.
 
 ```
-> git clone git@github.com:SlivTime/flibusta-cli.git
+> git clone git@github.com:slivtime/flibusta-cli.git
 > cd flibusta-cli
 
 # Copy example configuration to where you store your environment. I use .zshenv for it.  
