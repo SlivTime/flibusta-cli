@@ -1,4 +1,4 @@
-module flibusta-cli
+module github.com/SlivTime/flibusta-cli
 
 go 1.16
 
