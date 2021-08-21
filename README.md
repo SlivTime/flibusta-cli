@@ -7,6 +7,12 @@ in any online store. There is a chance that what I am looking
 for can be found on Flibusta site. So I made this utility to 
 be able to search conviniently.
 
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/slivtime/flibusta-cli)](https://pkg.go.dev/github.com/slivtime/flibusta-cli)
+[![Go Report Card](https://goreportcard.com/badge/github.com/slivtime/flibusta-cli)](https://goreportcard.com/report/github.com/slivtime/flibusta-cli)
+[![Build Status](https://travis-ci.com/slivtime/flibusta-cli.svg?branch=main)](https://travis-ci.com/slivtime/flibusta-cli)
+
+
+
 ## Setup
 Flibusta is available via Tor-network with Onion routing so we can use [Torproxy](https://github.com/dperson/torproxy)
 to grant access. By default it binds http proxy to port 8118. 
