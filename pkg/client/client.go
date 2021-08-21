@@ -55,14 +55,8 @@ func FromEnv() (*FlibustaClient, error) {
 }
 
 func (c *FlibustaClient) Search(searchQuery string) (result []ListItem, err error) {
-	searchUrl, err := buildSearchUrl(searchQuery)
-	if err != nil {
-		return
-	}
-	req, err := buildRequest(searchUrl)
-	if err != nil {
-		return
-	}
+	searchUrl := buildSearchUrl(searchQuery)
+	req := buildRequest(searchUrl)
 
 	log.Printf("Search Flibusta for `%s`", searchUrl)
 
@@ -84,14 +78,8 @@ func (c *FlibustaClient) Download(id string, bookFormat string) (result *Downloa
 	if err != nil {
 		return
 	}
-	bookUrl, err := buildDownloadUrl(id, bookFormat)
-	if err != nil {
-		return
-	}
-	req, err := buildRequest(bookUrl)
-	if err != nil {
-		return
-	}
+	bookUrl := buildDownloadUrl(id, bookFormat)
+	req := buildRequest(bookUrl)
 
 	log.Printf("Download file by id: `%s`", bookUrl)
 
@@ -107,6 +95,6 @@ func (c *FlibustaClient) Download(id string, bookFormat string) (result *Downloa
 		return
 	}
 
-	result = &DownloadResult{Name: getFileNameFromHeader(resp.Header), File: file}
+	result = &DownloadResult{Name: getFileNameFromHeader(&resp.Header), File: file}
 	return result, nil
 }

@@ -8,11 +8,14 @@ import (
 	"strings"
 )
 
-const defaultHost = "flibustahezeous3.onion"
+const (
+	defaultHost        = "flibustahezeous3.onion"
+	FlibustaHostEnvKey = "FLIBUSTA_HOST"
+)
 
 func getHost() (host string) {
-	host, exists := os.LookupEnv("FLIBUSTA_HOST")
-	if !exists {
+	host = os.Getenv(FlibustaHostEnvKey)
+	if host == "" {
 		return defaultHost
 	}
 	return host
@@ -25,39 +28,36 @@ func getBaseUrl() (u *url.URL) {
 	}
 }
 
-func buildSearchUrl(searchQuery string) (searchUrl string, err error) {
+func buildSearchUrl(searchQuery string) string {
 	u := getBaseUrl()
 	u.Path = searchPath
 	q := u.Query()
 	q.Set("ask", searchQuery)
 	q.Set("chb", "on") // Search only books
 	u.RawQuery = q.Encode()
-	return u.String(), nil
+	return u.String()
 }
 
-func buildDownloadUrl(bookId string, bookFormat string) (bookUrl string, err error) {
+func buildDownloadUrl(bookId string, bookFormat string) string {
 	u := getBaseUrl()
 	u.Path = path.Join(downloadPath, bookId, bookFormat)
-	return u.String(), nil
+	return u.String()
 }
 
-func buildRequest(url string) (request *http.Request, err error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return
-	}
+func buildRequest(url string) *http.Request {
+	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", browserUserAgent)
-	return req, nil
+	return req
 }
 
-func getFileNameFromHeader(h http.Header) string {
+func getFileNameFromHeader(h *http.Header) string {
 	disposition := h.Get("Content-Disposition")
 	if disposition == "" {
 		return ""
 	}
 	splitted := strings.Split(disposition, "filename=")
 	if len(splitted) > 1 {
-		return splitted[1]
+		return strings.ReplaceAll(splitted[1], "\"", "")
 	} else {
 		return ""
 	}
