@@ -87,3 +87,60 @@ func TestParseSearch(t *testing.T) {
 		})
 	}
 }
+
+func TestListItem_String(t *testing.T) {
+	type fields struct {
+		Title   string
+		Authors []string
+		ID      string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			"No author",
+			fields{
+				"TestBookTitle",
+				[]string{},
+				"1",
+			},
+			"1: TestBookTitle <>",
+		},
+		{
+			"Single author",
+			fields{
+				"TestBookTitle",
+				[]string{"TestAuthor"},
+				"1",
+			},
+			"1: TestBookTitle <TestAuthor>",
+		},
+		{
+			"Multiple authors",
+			fields{
+				"TestBookTitle",
+				[]string{
+					"TestAuthor1",
+					"TestAuthor2",
+					"TestAuthor3",
+				},
+				"1",
+			},
+			"1: TestBookTitle <TestAuthor1, TestAuthor2, TestAuthor3>",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			item := &ListItem{
+				Title:   tt.fields.Title,
+				Authors: tt.fields.Authors,
+				ID:      tt.fields.ID,
+			}
+			if got := item.String(); got != tt.want {
+				t.Errorf("String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
