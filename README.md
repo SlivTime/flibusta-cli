@@ -9,7 +9,7 @@ be able to search conviniently.
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/slivtime/flibusta-cli)](https://pkg.go.dev/github.com/slivtime/flibusta-cli)
 [![Go Report Card](https://goreportcard.com/badge/github.com/slivtime/flibusta-cli)](https://goreportcard.com/report/github.com/slivtime/flibusta-cli)
-[![Build Status](https://travis-ci.com/slivtime/flibusta-cli.svg?branch=main)](https://travis-ci.com/slivtime/flibusta-cli)
+[![Build Status](https://app.travis-ci.com/SlivTime/flibusta-cli.svg?branch=main)](https://app.travis-ci.com/SlivTime/flibusta-cli)
 [![codecov](https://codecov.io/gh/SlivTime/flibusta-cli/branch/main/graph/badge.svg?token=OPQGUACUJ5)](https://codecov.io/gh/SlivTime/flibusta-cli)
 
 
