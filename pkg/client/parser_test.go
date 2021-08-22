@@ -1,0 +1,89 @@
+package client
+
+import (
+	"os"
+	"path"
+	"reflect"
+	"testing"
+)
+
+func TestParseSearch(t *testing.T) {
+	type args struct {
+		inputFileName string
+	}
+	tests := []struct {
+		name string
+		args args
+		want *[]ListItem
+	}{
+		{
+			"Index page - no list",
+			args{"index.html"},
+			&[]ListItem{},
+		},
+		{
+			"Item - no list",
+			args{"item.html"},
+			&[]ListItem{},
+		},
+		{
+			"List",
+			args{"list.html"},
+			&[]ListItem{
+				{
+					Title:   "Пелевин и поколение пустоты",
+					Authors: []string{"Сергей Полотовский", "Роман Козак"},
+					ID:      "1",
+				},
+				{
+					Title:   "\"Нео-пелевин\"",
+					Authors: []string{"Вадим Сеновский"},
+					ID:      "2",
+				},
+				{
+					Title:   "Виктор Пелевин - Синий фонарь",
+					Authors: []string{"Сергей Валерьевич Бережной"},
+					ID:      "3",
+				},
+			},
+		},
+		{
+			"List with many authors for one book",
+			args{"many_authors.html"},
+			&[]ListItem{
+				{
+					Title: "Не только Холмс. Детектив времен Конан Дойла [Антология викторианской детективной новеллы]",
+					Authors: []string{
+						"Эллен Вуд",
+						"Грант Аллен", "Кэтрин Луиза Пиркис", "Израэль Зангвилл", "Артур Моррисон", "Фергюс Хьюм", "Элизабет Томазина Мид-Смит", "Юстас Роберт Бартон", "Мэтью Фиппс Шил", "Роберт Уильям Чамберс", "Мелвилл Дэвиссон Пост", "Матиас Макдоннелл Бодкин", "Гай Ньюэлл Бусби", "Эрнест Уильям Хорнунг",
+					},
+					ID: "510935",
+				},
+			},
+		},
+		{
+			"502",
+			args{"502.html"},
+			&[]ListItem{},
+		},
+		{
+			"json",
+			args{"empty.json"},
+			&[]ListItem{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fullPath := path.Join("testdata/parser", tt.args.inputFileName)
+			stream, err := os.Open(fullPath)
+			if err != nil {
+				t.Errorf("Cannot open test data file: %v", fullPath)
+				return
+			}
+			gotResult := ParseSearch(stream)
+			if !reflect.DeepEqual(gotResult, tt.want) {
+				t.Errorf("ParseSearch() gotResult = %v, want %v", gotResult, tt.want)
+			}
+		})
+	}
+}

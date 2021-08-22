@@ -25,7 +25,7 @@ func commandSearch(context *cli.Context) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, item := range searchResult {
+	for _, item := range *searchResult {
 		fmt.Println(item.String())
 	}
 	return nil

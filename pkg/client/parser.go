@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/antchfx/htmlquery"
 	"golang.org/x/net/html"
@@ -11,7 +12,8 @@ import (
 
 const listItemsSelector = "//div[@id='main']/ul/li"
 
-var itemIdRe = regexp.MustCompile(`[0-9]+`)
+var itemIdRe = regexp.MustCompile(`[0-9]+$`)
+var stripSpacesRe = regexp.MustCompile(`\s+`)
 
 type ListItem struct {
 	Title   string
@@ -23,27 +25,27 @@ func (item *ListItem) String() string {
 	return fmt.Sprintf("%s: %s <%s>", item.ID, item.Title, strings.Join(item.Authors, ", "))
 }
 
-func ParseSearch(stream io.Reader) (result []ListItem, err error) {
-	doc, err := htmlquery.Parse(stream)
-	if err != nil {
-		return
-	}
+func ParseSearch(stream io.Reader) *[]ListItem {
+	doc, _ := htmlquery.Parse(stream)
 
-	result = []ListItem{}
+	result := []ListItem{}
 
 	list := htmlquery.Find(doc, listItemsSelector)
 	for _, listItem := range list {
 		titleNode := htmlquery.FindOne(listItem, "//a[1]")
 		authorNodes := htmlquery.Find(listItem, "//a[position()>1]")
 		itemHref := htmlquery.SelectAttr(titleNode, "href")
+
+		title := &bytes.Buffer{}
+		collectText(titleNode, title)
 		result = append(result, ListItem{
 			ID:      itemIdRe.FindString(itemHref),
-			Title:   htmlquery.InnerText(titleNode),
+			Title:   title.String(),
 			Authors: getAuthors(authorNodes),
 		})
 	}
 
-	return result, nil
+	return &result
 }
 
 func getAuthors(nodes []*html.Node) (authors []string) {
@@ -51,4 +53,14 @@ func getAuthors(nodes []*html.Node) (authors []string) {
 		authors = append(authors, htmlquery.InnerText(node))
 	}
 	return authors
+}
+
+func collectText(n *html.Node, buf *bytes.Buffer) {
+	if n.Type == html.TextNode {
+		txt := stripSpacesRe.ReplaceAllString(n.Data, ` `)
+		buf.WriteString(txt)
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		collectText(c, buf)
+	}
 }

@@ -54,7 +54,7 @@ func FromEnv() (*FlibustaClient, error) {
 	return &client, nil
 }
 
-func (c *FlibustaClient) Search(searchQuery string) (result []ListItem, err error) {
+func (c *FlibustaClient) Search(searchQuery string) (result *[]ListItem, err error) {
 	searchUrl := buildSearchUrl(searchQuery)
 	req := buildRequest(searchUrl)
 
@@ -65,10 +65,7 @@ func (c *FlibustaClient) Search(searchQuery string) (result []ListItem, err erro
 		return
 	}
 	defer resp.Body.Close()
-	result, err = ParseSearch(resp.Body)
-	if err != nil {
-		return
-	}
+	result = ParseSearch(resp.Body)
 
 	return result, nil
 }
