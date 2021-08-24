@@ -173,6 +173,11 @@ func Test_getHost(t *testing.T) {
 			"flibustahezeous3.onion",
 			"flibustahezeous3.onion",
 		},
+		{
+			"With scheme",
+			"http://example.com",
+			"http://example.com",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
