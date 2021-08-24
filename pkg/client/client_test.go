@@ -188,15 +188,22 @@ func TestFlibustaClient_Search(t *testing.T) {
 }
 
 func TestFromEnv(t *testing.T) {
+	oldEnv := os.Getenv("FLIBUSTA_PROXY_URL")
+	defer func() {
+		_ = os.Setenv("FLIBUSTA_PROXY_URL", oldEnv)
+	}()
+	type env struct {
+		proxyUrl string
+	}
 	tests := []struct {
 		name    string
-		env     map[string]string
+		env     env
 		want    *FlibustaClient
 		wantErr bool
 	}{
 		{
 			"Empty env - use default",
-			map[string]string{},
+			env{},
 			&FlibustaClient{
 				&http.Client{},
 				&url.URL{
@@ -208,16 +215,24 @@ func TestFromEnv(t *testing.T) {
 		},
 		{
 			"Invalid proxy url in env",
-			map[string]string{
-				"FLIBUSTA_PROXY_URL": "postgres://user:abc{DEf1=ghi@example.com:5432/db?sslmode=require",
+			env{
+				"postgres://user:abc{DEf1=ghi@example.com:5432/db?sslmode=require",
+			},
+			nil,
+			true,
+		},
+		{
+			"Invalid http proxy url in env",
+			env{
+				"http://user:abc{DEf1=ghi@example.com:5432/db?sslmode=require",
 			},
 			nil,
 			true,
 		},
 		{
 			"Proxy from env",
-			map[string]string{
-				"FLIBUSTA_PROXY_URL": "http://test.proxy:123/",
+			env{
+				"http://test.proxy:123/",
 			},
 			&FlibustaClient{
 				&http.Client{},
@@ -231,8 +246,8 @@ func TestFromEnv(t *testing.T) {
 		},
 		{
 			"Proxy from env without slash",
-			map[string]string{
-				"FLIBUSTA_PROXY_URL": "http://test.proxy:123",
+			env{
+				"http://test.proxy:123",
 			},
 			&FlibustaClient{
 				&http.Client{},
@@ -245,20 +260,15 @@ func TestFromEnv(t *testing.T) {
 		},
 		{
 			"Proxy from env without scheme",
-			map[string]string{
-				"FLIBUSTA_PROXY_URL": "proxy.com:123",
+			env{
+				"proxy.com:123",
 			},
 			nil,
 			true,
 		},
 	}
 	for _, tt := range tests {
-		for k, v := range tt.env {
-			err := os.Setenv(k, v)
-			if err != nil {
-				t.Errorf("Cannot set env for test")
-			}
-		}
+		_ = os.Setenv("FLIBUSTA_PROXY_URL", tt.env.proxyUrl)
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := FromEnv()
 			if (err != nil) != tt.wantErr {

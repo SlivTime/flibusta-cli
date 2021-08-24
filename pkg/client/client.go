@@ -43,7 +43,7 @@ func validateBookFormat(format string) (err error) {
 	return errors.New("invalid book format")
 }
 
-func hasScheme(url string) bool {
+func isHttpProxy(url string) bool {
 	return strings.HasPrefix(url, defaultProxyScheme)
 }
 
@@ -52,7 +52,7 @@ func FromEnv() (*FlibustaClient, error) {
 	if proxyUrlString == "" {
 		proxyUrlString = defaultProxyUrl
 	}
-	if !hasScheme(proxyUrlString) {
+	if !isHttpProxy(proxyUrlString) {
 		return nil, fmt.Errorf("%s does not contain scheme (http or https)", proxyUrlString)
 	}
 
@@ -60,9 +60,6 @@ func FromEnv() (*FlibustaClient, error) {
 	if err != nil {
 		err = errors.New("invalid FLIBUSTA_PROXY_URL")
 		return nil, err
-	}
-	if proxyUrl.Scheme == "" {
-		proxyUrl.Scheme = defaultProxyScheme
 	}
 
 	client := FlibustaClient{}
