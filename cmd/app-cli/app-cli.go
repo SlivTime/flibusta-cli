@@ -21,7 +21,7 @@ func commandSearch(context *cli.Context) error {
 		log.Fatal(err)
 	}
 	fmt.Println("search book: ", query)
-	searchResult, err := flibusta.Search(query)
+	searchResult, err := flibusta.Search(query, client.ParseSearch)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -12,19 +12,22 @@ func TestParseSearch(t *testing.T) {
 		inputFileName string
 	}
 	tests := []struct {
-		name string
-		args args
-		want *[]ListItem
+		name    string
+		args    args
+		want    *[]ListItem
+		wantErr bool
 	}{
 		{
 			"Index page - no list",
 			args{"index.html"},
-			&[]ListItem{},
+			nil,
+			true,
 		},
 		{
 			"Item - no list",
 			args{"item.html"},
-			&[]ListItem{},
+			nil,
+			true,
 		},
 		{
 			"List",
@@ -46,6 +49,7 @@ func TestParseSearch(t *testing.T) {
 					ID:      "3",
 				},
 			},
+			false,
 		},
 		{
 			"List with many authors for one book",
@@ -60,16 +64,19 @@ func TestParseSearch(t *testing.T) {
 					ID: "510935",
 				},
 			},
+			false,
 		},
 		{
 			"502",
 			args{"502.html"},
-			&[]ListItem{},
+			nil,
+			true,
 		},
 		{
 			"json",
 			args{"empty.json"},
-			&[]ListItem{},
+			nil,
+			true,
 		},
 	}
 	for _, tt := range tests {
@@ -80,7 +87,11 @@ func TestParseSearch(t *testing.T) {
 				t.Errorf("Cannot open test data file: %v", fullPath)
 				return
 			}
-			gotResult := ParseSearch(stream)
+			gotResult, err := ParseSearch(stream)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Search() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
 			if !reflect.DeepEqual(gotResult, tt.want) {
 				t.Errorf("ParseSearch() gotResult = %v, want %v", gotResult, tt.want)
 			}
