@@ -87,8 +87,6 @@ func TestFlibustaClient_Search(t *testing.T) {
 		_ = os.Setenv("FLIBUSTA_HOST", oldEnv)
 	}()
 
-	//os.Setenv("FLIBUSTA_HOST", tsURL.Host)
-	//os.Setenv("FLIBUSTA_HOST", "foobar")
 	type env struct {
 		envHost string
 	}
