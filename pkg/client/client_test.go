@@ -67,7 +67,7 @@ func processorFuncFabric(wantUrl string) func(stream io.Reader) (*[]ListItem, er
 		bodyBytes, _ := io.ReadAll(stream)
 		body := string(bodyBytes)
 		if body != wantUrl {
-			return nil, errors.New("Fail")
+			return nil, errors.New("fail")
 		}
 		return &[]ListItem{
 			{
