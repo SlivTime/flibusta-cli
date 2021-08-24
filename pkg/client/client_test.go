@@ -13,20 +13,27 @@ import (
 	"testing"
 )
 
-var successSearchTestResult = &[]ListItem{
-	{
-		Title:   "Ok",
-		Authors: nil,
-		ID:      "1",
-	},
-}
-var searchTestServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	_, _ = fmt.Fprintln(w, testResponse(r.URL))
-}))
+var (
+	successSearchTestResult = &[]ListItem{
+		{
+			Title:   "Ok",
+			Authors: nil,
+			ID:      "1",
+		},
+	}
+	testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprintln(w, testResponse(r.URL))
+	}))
+)
 
 func TestFlibustaClient_Download(t *testing.T) {
-	type fields struct {
-		httpClient *http.Client
+	tsURL, _ := url.Parse(testServer.URL)
+	oldEnv := os.Getenv("FLIBUSTA_HOST")
+	defer func() {
+		_ = os.Setenv("FLIBUSTA_HOST", oldEnv)
+	}()
+	type env struct {
+		envHost string
 	}
 	type args struct {
 		id         string
@@ -34,18 +41,60 @@ func TestFlibustaClient_Download(t *testing.T) {
 	}
 	tests := []struct {
 		name       string
-		fields     fields
+		env        env
 		args       args
 		wantResult *DownloadResult
 		wantErr    bool
 	}{
-		// TODO: Add test cases.
+		{
+			"Success story",
+			env{
+				tsURL.Host,
+			},
+			args{
+				"123",
+				"mobi",
+			},
+
+			&DownloadResult{
+				Name: "",
+				File: []byte("/b/123/mobi\n"),
+			},
+			false,
+		},
+		{
+			"Wrong format",
+			env{
+				tsURL.Host,
+			},
+			args{
+				"123",
+				"docx",
+			},
+
+			nil,
+			true,
+		},
+		{
+			"Missing host - error",
+			env{
+				"missing.host",
+			},
+			args{
+				"123",
+				"mobi",
+			},
+
+			nil,
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &FlibustaClient{
-				httpClient: tt.fields.httpClient,
+				httpClient: testServer.Client(),
 			}
+			_ = os.Setenv("FLIBUSTA_HOST", tt.env.envHost)
 			gotResult, err := c.Download(tt.args.id, tt.args.bookFormat)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Download() error = %v, wantErr %v", err, tt.wantErr)
@@ -58,30 +107,8 @@ func TestFlibustaClient_Download(t *testing.T) {
 	}
 }
 
-func testResponse(url *url.URL) string {
-	return url.String()
-}
-
-func processorFuncFabric(wantUrl string) func(stream io.Reader) (*[]ListItem, error) {
-	return func(stream io.Reader) (*[]ListItem, error) {
-		bodyBytes, _ := io.ReadAll(stream)
-		body := string(bodyBytes)
-		if body != wantUrl {
-			return nil, errors.New("fail")
-		}
-		return &[]ListItem{
-			{
-				ID:      "1",
-				Title:   "Ok",
-				Authors: nil,
-			},
-		}, nil
-	}
-}
-
 func TestFlibustaClient_Search(t *testing.T) {
-	defer searchTestServer.Close()
-	tsURL, _ := url.Parse(searchTestServer.URL)
+	tsURL, _ := url.Parse(testServer.URL)
 	oldEnv := os.Getenv("FLIBUSTA_HOST")
 	defer func() {
 		_ = os.Setenv("FLIBUSTA_HOST", oldEnv)
@@ -145,7 +172,7 @@ func TestFlibustaClient_Search(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &FlibustaClient{
-				httpClient: searchTestServer.Client(),
+				httpClient: testServer.Client(),
 			}
 			_ = os.Setenv("FLIBUSTA_HOST", tt.env.envHost)
 			gotResult, err := c.Search(tt.args.searchQuery, processorFuncFabric(tt.want.url))
@@ -298,5 +325,26 @@ func Test_validateBookFormat(t *testing.T) {
 				t.Errorf("validateBookFormat() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func testResponse(url *url.URL) string {
+	return url.String()
+}
+
+func processorFuncFabric(wantUrl string) func(stream io.Reader) (*[]ListItem, error) {
+	return func(stream io.Reader) (*[]ListItem, error) {
+		bodyBytes, _ := io.ReadAll(stream)
+		body := string(bodyBytes)
+		if body != wantUrl {
+			return nil, errors.New("fail")
+		}
+		return &[]ListItem{
+			{
+				ID:      "1",
+				Title:   "Ok",
+				Authors: nil,
+			},
+		}, nil
 	}
 }

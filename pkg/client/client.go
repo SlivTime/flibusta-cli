@@ -76,7 +76,6 @@ func FromEnv() (*FlibustaClient, error) {
 func (c *FlibustaClient) Search(searchQuery string, respProcessor func(stream io.Reader) (*[]ListItem, error)) (result *[]ListItem, err error) {
 	searchUrl := buildSearchUrl(searchQuery)
 	req := buildRequest(searchUrl)
-
 	log.Printf("Search Flibusta for `%s`", searchUrl)
 
 	resp, err := c.httpClient.Do(req)
@@ -84,11 +83,7 @@ func (c *FlibustaClient) Search(searchQuery string, respProcessor func(stream io
 		return
 	}
 	defer resp.Body.Close()
-	result, err = respProcessor(resp.Body)
-	if err != nil {
-		return
-	}
-	return result, nil
+	return respProcessor(resp.Body)
 }
 
 func (c *FlibustaClient) Download(id string, bookFormat string) (result *DownloadResult, err error) {
@@ -113,6 +108,5 @@ func (c *FlibustaClient) Download(id string, bookFormat string) (result *Downloa
 		return
 	}
 
-	result = &DownloadResult{Name: getFileNameFromHeader(&resp.Header), File: file}
-	return result, nil
+	return &DownloadResult{Name: getFileNameFromHeader(&resp.Header), File: file}, nil
 }
