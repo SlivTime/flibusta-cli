@@ -33,6 +33,9 @@ func commandSearch(context *cli.Context) error {
 
 func commandGet(context *cli.Context) error {
 	bookID := context.Args().First()
+	if bookID == "" {
+		log.Fatal("bookID is required parameter")
+	}
 
 	flibusta, err := client.FromEnv()
 	if err != nil {
@@ -56,6 +59,23 @@ func commandGet(context *cli.Context) error {
 	return nil
 }
 
+func commandInfo(context *cli.Context) error {
+	bookID := context.Args().First()
+
+	flibusta, err := client.FromEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("book info: ", bookID)
+	infoResult, err := flibusta.Info(bookID, client.ParseInfo)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(infoResult.String())
+	return nil
+}
+
 func (c *FlibustaCLI) Start() (err error) {
 	app := &cli.App{
 		Commands: cli.Commands{
@@ -64,6 +84,12 @@ func (c *FlibustaCLI) Start() (err error) {
 				Aliases: []string{"s"},
 				Usage:   "Search book",
 				Action:  commandSearch,
+			},
+			&cli.Command{
+				Name:    "info",
+				Aliases: []string{"i"},
+				Usage:   "Book info",
+				Action:  commandInfo,
 			},
 			&cli.Command{
 				Name:    "get",
