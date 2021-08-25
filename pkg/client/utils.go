@@ -1,6 +1,7 @@
 package client
 
 import (
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -44,6 +45,12 @@ func buildDownloadUrl(bookId string, bookFormat string) string {
 	return u.String()
 }
 
+func buildInfoUrl(bookId string) string {
+	u := getBaseUrl()
+	u.Path = path.Join(downloadPath, bookId)
+	return u.String()
+}
+
 func buildRequest(url string) *http.Request {
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", browserUserAgent)
@@ -60,5 +67,11 @@ func getFileNameFromHeader(h *http.Header) string {
 		return strings.ReplaceAll(splitted[1], "\"", "")
 	} else {
 		return ""
+	}
+}
+
+func check(err error) {
+	if err != nil {
+		log.Fatal(err)
 	}
 }

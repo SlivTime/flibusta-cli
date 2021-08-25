@@ -155,3 +155,67 @@ func TestListItem_String(t *testing.T) {
 		})
 	}
 }
+
+func TestParseInfo(t *testing.T) {
+	type args struct {
+		inputFileName string
+	}
+	tests := []struct {
+		name       string
+		args       args
+		wantResult *InfoResult
+		wantErr    bool
+	}{
+		{
+			"Index page - no item",
+			args{"index.html"},
+			nil,
+			true,
+		},
+		{
+			"Item - get descr",
+			args{"item.html"},
+			&InfoResult{
+				ID:         "325729",
+				Title:      "Нежить (fb2)",
+				Annotation: "На страницах новой антологии собраны лучшие рассказы о нежити! Красочные картины дефилирующих по городам и весям чудовищ, некогда бывших людьми, способны защекотать самые крепкие нервы. Для вас, дорогой читатель, напрягали фантазию такие мастера макабрических сюжетов, как Майкл Суэнвик, Джеффри Форд, Лорел Гамильтон, Нил Гейман, Джордж Мартин, Харлан Эллисон с Робертом Сильвербергом и многие другие.",
+				Size:       "2263K, 595 с.",
+				Genre:      "Ужасы",
+				Formats:    []string{"fb2", "epub", "mobi"},
+			},
+			false,
+		},
+		{
+			"List - no item descr",
+			args{"list.html"},
+			nil,
+			true,
+		},
+		{
+			"502",
+			args{"502.html"},
+			nil,
+			true,
+		},
+		{
+			"json",
+			args{"empty.json"},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fullPath := path.Join("testdata/parser", tt.args.inputFileName)
+			stream, err := os.Open(fullPath)
+			gotResult, err := ParseInfo(stream)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseInfo() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotResult, tt.wantResult) {
+				t.Errorf("ParseInfo() gotResult = %v, want %v", gotResult, tt.wantResult)
+			}
+		})
+	}
+}

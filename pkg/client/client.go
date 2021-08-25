@@ -23,6 +23,8 @@ const (
 	defaultProxyUrl    = "http://localhost:8118"
 )
 
+var validFormats = []string{Fb2, Epub, Mobi}
+
 type FlibustaClient struct {
 	httpClient *http.Client
 	proxyUrl   *url.URL
@@ -33,8 +35,17 @@ type DownloadResult struct {
 	File []byte
 }
 
+type InfoResult struct {
+	ID         string
+	Title      string
+	Genre      string
+	Annotation string
+	Size       string
+	Formats    []string
+}
+
 func validateBookFormat(format string) (err error) {
-	validFormats := []string{Fb2, Epub, Mobi}
+
 	for _, valid := range validFormats {
 		if format == valid {
 			return nil
@@ -106,4 +117,19 @@ func (c *FlibustaClient) Download(id string, bookFormat string) (result *Downloa
 	}
 
 	return &DownloadResult{Name: getFileNameFromHeader(&resp.Header), File: file}, nil
+}
+
+func (c *FlibustaClient) Info(id string, respProcessor func(stream io.Reader) (result *InfoResult, err error)) (result *InfoResult, err error) {
+	bookUrl := buildInfoUrl(id)
+	req := buildRequest(bookUrl)
+
+	log.Printf("Download file by id: `%s`", bookUrl)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+	return respProcessor(resp.Body)
 }
