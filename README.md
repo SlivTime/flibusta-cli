@@ -30,6 +30,7 @@ All configuration can be done via Environment, but it should work with Torproxy 
 
 # Check
 > flibusta-cli search Война и мир
+> flibusta-cli info 175105
 > flibusta-cli get 175105
 ```
 
