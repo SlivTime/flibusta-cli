@@ -341,8 +341,8 @@ func Test_buildInfoUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := buildInfoUrl(tt.args.bookId); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("buildInfoUrl() = %v, want %v", got.String(), tt.want)
+			if got := buildInfoUrl(tt.args.bookId).String(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("buildInfoUrl() = %v, want %v", got, tt.want)
 			}
 		})
 	}
