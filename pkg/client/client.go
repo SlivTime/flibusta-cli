@@ -59,7 +59,7 @@ func FromEnv() (*FlibustaClient, error) {
 		proxyUrlString = defaultProxyUrl
 	}
 	if !isHttpProxy(proxyUrlString) {
-		return nil, fmt.Errorf("%s does not contain defaultScheme (http or https)", proxyUrlString)
+		return nil, fmt.Errorf("%s does not contain scheme (http or https)", proxyUrlString)
 	}
 	proxyUrl, err := url.Parse(proxyUrlString)
 	if err != nil {
