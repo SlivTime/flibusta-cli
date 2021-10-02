@@ -21,7 +21,6 @@ All configuration can be done via Environment, but it should work with Torproxy 
 
 ```
 > go get -u github.com/slivtime/flibusta-cli@latest
-> cd flibusta-cli
 
 # Check
 > flibusta-cli search Война и мир
