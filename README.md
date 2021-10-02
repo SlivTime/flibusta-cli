@@ -20,7 +20,7 @@ to grant access. By default it binds http proxy to port 8118.
 All configuration can be done via Environment, but it should work with Torproxy with default ports.
 
 ```
-> go get -u github.com/slivtime/flibusta-cli@latest
+> go install github.com/slivtime/flibusta-cli@latest
 
 # Check
 > flibusta-cli search Война и мир
