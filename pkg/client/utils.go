@@ -1,36 +1,33 @@
 package client
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 )
 
-const (
-	defaultHost        = "flibustahezeous3.onion"
-	FlibustaHostEnvKey = "FLIBUSTA_HOST"
-)
+var HostRe = regexp.MustCompile(`(?P<Scheme>https?)?(://)?(?P<Host>[0-8a-z.]+):?(?P<Port>[0-9]+)?/?`)
 
-func getHost() (host string) {
-	host = os.Getenv(FlibustaHostEnvKey)
-	if host == "" {
-		return defaultHost
-	}
-	return host
+type Headers map[string]string
+
+func getEnvHost() string {
+	return os.Getenv(FlibustaHostEnvKey)
 }
 
 func getBaseUrl() (u *url.URL) {
 	return &url.URL{
-		Host:   getHost(),
-		Scheme: scheme,
+		Host:   getEnvHost(),
+		Scheme: defaultScheme,
 	}
 }
 
-func buildSearchUrl(searchQuery string) string {
-	u := getBaseUrl()
+func buildSearchPath(searchQuery string) string {
+	u := url.URL{}
 	u.Path = searchPath
 	q := u.Query()
 	q.Set("ask", searchQuery)
@@ -39,22 +36,45 @@ func buildSearchUrl(searchQuery string) string {
 	return u.String()
 }
 
-func buildDownloadUrl(bookId string, bookFormat string) string {
-	u := getBaseUrl()
+func buildDownloadPath(bookId string, bookFormat string) string {
+	u := url.URL{}
 	u.Path = path.Join(downloadPath, bookId, bookFormat)
 	return u.String()
 }
 
-func buildInfoUrl(bookId string) string {
-	u := getBaseUrl()
+func buildInfoPath(bookId string) string {
+	u := url.URL{}
 	u.Path = path.Join(downloadPath, bookId)
 	return u.String()
 }
 
-func buildRequest(url string) *http.Request {
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("User-Agent", browserUserAgent)
-	return req
+func buildRequest(host string, path string, headers Headers) (*http.Request, error) {
+	match := HostRe.FindStringSubmatch(host)
+	if match == nil {
+		return nil, errors.New("Cannot parse host")
+	}
+	scheme := match[1]
+	if scheme == "" {
+		scheme = defaultScheme
+	}
+
+	u := url.URL{
+		Scheme: scheme,
+		Host:   match[3],
+		Path:   path,
+	}
+	req, _ := http.NewRequest("GET", u.String(), nil)
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	return req, nil
+}
+
+func getHeaders() Headers {
+	headers := Headers{
+		"User-Agent": browserUserAgent,
+	}
+	return headers
 }
 
 func getFileNameFromHeader(h *http.Header) string {

@@ -1,11 +1,11 @@
 package client
 
 import (
+	"bytes"
 	"errors"
-	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	_ "net/http/httptest"
 	"net/url"
 	"os"
@@ -21,13 +21,37 @@ var (
 			ID:      "1",
 		},
 	}
-	testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = fmt.Fprintln(w, testResponse(r.URL))
-	}))
+	testUrl = url.URL{
+		Host: "test.host",
+	}
 )
 
+func ResponseWithRequestPath(req *http.Request) *http.Response {
+	return &http.Response{
+		StatusCode: 200,
+		// Send response to be tested
+		Body: ioutil.NopCloser(bytes.NewBufferString(req.URL.Path)),
+		// Must be set to non-nil value or it panics
+		Header: make(http.Header),
+	}
+}
+
+// RoundTripFunc .
+type RoundTripFunc func(req *http.Request) *http.Response
+
+// RoundTrip .
+func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req), nil
+}
+
+//NewTestClient returns *http.Client with Transport replaced to avoid making real calls
+func NewTestClient(fn RoundTripFunc) *http.Client {
+	return &http.Client{
+		Transport: RoundTripFunc(fn),
+	}
+}
+
 func TestFlibustaClient_Download(t *testing.T) {
-	tsURL, _ := url.Parse(testServer.URL)
 	oldEnv := os.Getenv("FLIBUSTA_HOST")
 	defer func() {
 		_ = os.Setenv("FLIBUSTA_HOST", oldEnv)
@@ -49,7 +73,7 @@ func TestFlibustaClient_Download(t *testing.T) {
 		{
 			"Success story",
 			env{
-				tsURL.Host,
+				testUrl.Host,
 			},
 			args{
 				"123",
@@ -58,14 +82,14 @@ func TestFlibustaClient_Download(t *testing.T) {
 
 			&DownloadResult{
 				Name: "",
-				File: []byte("/b/123/mobi\n"),
+				File: []byte("/b/123/mobi"),
 			},
 			false,
 		},
 		{
 			"Wrong format",
 			env{
-				tsURL.Host,
+				testUrl.Host,
 			},
 			args{
 				"123",
@@ -75,24 +99,11 @@ func TestFlibustaClient_Download(t *testing.T) {
 			nil,
 			true,
 		},
-		{
-			"Missing host - error",
-			env{
-				"missing.host",
-			},
-			args{
-				"123",
-				"mobi",
-			},
-
-			nil,
-			true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &FlibustaClient{
-				httpClient: testServer.Client(),
+				httpClient: NewTestClient(ResponseWithRequestPath),
 			}
 			_ = os.Setenv("FLIBUSTA_HOST", tt.env.envHost)
 			gotResult, err := c.Download(tt.args.id, tt.args.bookFormat)
@@ -108,7 +119,6 @@ func TestFlibustaClient_Download(t *testing.T) {
 }
 
 func TestFlibustaClient_Search(t *testing.T) {
-	tsURL, _ := url.Parse(testServer.URL)
 	oldEnv := os.Getenv("FLIBUSTA_HOST")
 	defer func() {
 		_ = os.Setenv("FLIBUSTA_HOST", oldEnv)
@@ -134,32 +144,20 @@ func TestFlibustaClient_Search(t *testing.T) {
 		{
 			"Success story",
 			env{
-				tsURL.Host,
+				testUrl.Host,
 			},
 			args{"test"},
 
 			want{
 				successSearchTestResult,
-				"/booksearch?ask=test&chb=on\n",
+				"/booksearch?ask=test&chb=on",
 			},
 			false,
 		},
 		{
-			"Missing host - error",
-			env{
-				"missing.host",
-			},
-			args{"test"},
-			want{
-				nil,
-				"/booksearch?ask=test&chb=on\n",
-			},
-			true,
-		},
-		{
 			"Error from resp processor",
 			env{
-				tsURL.Host,
+				testUrl.Host,
 			},
 			args{"test"},
 			want{
@@ -172,7 +170,7 @@ func TestFlibustaClient_Search(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &FlibustaClient{
-				httpClient: testServer.Client(),
+				httpClient: NewTestClient(ResponseWithRequestPath),
 			}
 			_ = os.Setenv("FLIBUSTA_HOST", tt.env.envHost)
 			gotResult, err := c.Search(tt.args.searchQuery, processorFuncFabric(tt.want.url))
@@ -259,7 +257,7 @@ func TestFromEnv(t *testing.T) {
 			false,
 		},
 		{
-			"Proxy from env without scheme",
+			"Proxy from env without defaultScheme",
 			env{
 				"proxy.com:123",
 			},
@@ -336,10 +334,6 @@ func Test_validateBookFormat(t *testing.T) {
 			}
 		})
 	}
-}
-
-func testResponse(url *url.URL) string {
-	return url.String()
 }
 
 func processorFuncFabric(wantUrl string) func(stream io.Reader) (*[]ListItem, error) {

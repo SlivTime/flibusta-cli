@@ -12,7 +12,7 @@ const (
 	testHost = "test.host"
 )
 
-func Test_buildSearchUrl(t *testing.T) {
+func Test_buildSearchPath(t *testing.T) {
 	_ = os.Setenv(FlibustaHostEnvKey, testHost)
 	type args struct {
 		searchQuery string
@@ -25,29 +25,29 @@ func Test_buildSearchUrl(t *testing.T) {
 		{
 			"Empty",
 			args{""},
-			"http://test.host/booksearch?ask=&chb=on",
+			"/booksearch?ask=&chb=on",
 		},
 		{
 			"Empty",
 			args{"book"},
-			"http://test.host/booksearch?ask=book&chb=on",
+			"/booksearch?ask=book&chb=on",
 		},
 		{
 			"Empty",
 			args{"my book"},
-			"http://test.host/booksearch?ask=my+book&chb=on",
+			"/booksearch?ask=my+book&chb=on",
 		},
 		{
 			"Empty",
 			args{"The book#that^shoud%be&escaped"},
-			"http://test.host/booksearch?ask=The+book%23that%5Eshoud%25be%26escaped&chb=on",
+			"/booksearch?ask=The+book%23that%5Eshoud%25be%26escaped&chb=on",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotSearchUrl := buildSearchUrl(tt.args.searchQuery)
+			gotSearchUrl := buildSearchPath(tt.args.searchQuery)
 			if gotSearchUrl != tt.wantSearchUrl {
-				t.Errorf("buildSearchUrl() gotSearchUrl = %v, want %v", gotSearchUrl, tt.wantSearchUrl)
+				t.Errorf("buildSearchPath() gotSearchUrl = %v, want %v", gotSearchUrl, tt.wantSearchUrl)
 			}
 		})
 	}
@@ -152,47 +152,6 @@ func Test_getFileNameFromHeader(t *testing.T) {
 	}
 }
 
-func Test_getHost(t *testing.T) {
-	tests := []struct {
-		name     string
-		envHost  string
-		wantHost string
-	}{
-		{
-			"Empty env, return default",
-			"",
-			defaultHost,
-		},
-		{
-			"Default case, take from env",
-			"foo.bar",
-			"foo.bar",
-		},
-		{
-			"Default case",
-			"flibustahezeous3.onion",
-			"flibustahezeous3.onion",
-		},
-		{
-			"With scheme",
-			"http://example.com",
-			"http://example.com",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.envHost == "" {
-				_ = os.Unsetenv(FlibustaHostEnvKey)
-			} else {
-				_ = os.Setenv(FlibustaHostEnvKey, tt.envHost)
-			}
-			if gotHost := getHost(); gotHost != tt.wantHost {
-				t.Errorf("getHost() = %v, want %v", gotHost, tt.wantHost)
-			}
-		})
-	}
-}
-
 func Test_buildDownloadUrl(t *testing.T) {
 	_ = os.Setenv(FlibustaHostEnvKey, testHost)
 	type args struct {
@@ -210,7 +169,7 @@ func Test_buildDownloadUrl(t *testing.T) {
 				"",
 				"",
 			},
-			want: "http://test.host/b",
+			want: "/b",
 		},
 		{
 			name: "numbers",
@@ -218,7 +177,7 @@ func Test_buildDownloadUrl(t *testing.T) {
 				"1",
 				"1",
 			},
-			want: "http://test.host/b/1/1",
+			want: "/b/1/1",
 		},
 		{
 			name: "most common",
@@ -226,7 +185,7 @@ func Test_buildDownloadUrl(t *testing.T) {
 				"123",
 				"mobi",
 			},
-			want: "http://test.host/b/123/mobi",
+			want: "/b/123/mobi",
 		},
 		{
 			name: "Foobar",
@@ -234,13 +193,13 @@ func Test_buildDownloadUrl(t *testing.T) {
 				"foo",
 				"bar",
 			},
-			want: "http://test.host/b/foo/bar",
+			want: "/b/foo/bar",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := buildDownloadUrl(tt.args.bookId, tt.args.bookFormat); got != tt.want {
-				t.Errorf("buildDownloadUrl() = %v, want %v", got, tt.want)
+			if got := buildDownloadPath(tt.args.bookId, tt.args.bookFormat); got != tt.want {
+				t.Errorf("buildDownloadPath() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -248,7 +207,9 @@ func Test_buildDownloadUrl(t *testing.T) {
 
 func Test_buildRequest(t *testing.T) {
 	type args struct {
-		url string
+		host    string
+		path    string
+		headers Headers
 	}
 	type want struct {
 		userAgent string
@@ -256,77 +217,85 @@ func Test_buildRequest(t *testing.T) {
 		url       string
 	}
 	tests := []struct {
-		name string
-		args args
-		want want
+		name    string
+		args    args
+		want    want
+		wantErr bool
 	}{
 		{
 			"Foo",
 			args{
+				"",
 				"foo",
+				getHeaders(),
 			},
 			want{
 				browserUserAgent,
 				"GET",
 				"foo",
 			},
+			true,
 		},
 		{
 			"Full host",
 			args{
-				"http://example.com/",
+				"example.com",
+				"",
+				getHeaders(),
 			},
 			want{
 				browserUserAgent,
 				"GET",
-				"http://example.com/",
+				"http://example.com",
 			},
+			false,
 		},
 		{
-			"Preserve protocol",
+			"Keep protocol ",
 			args{
 				"https://example.com/",
+				"",
+				getHeaders(),
 			},
 			want{
 				browserUserAgent,
 				"GET",
-				"https://example.com/",
+				"https://example.com",
 			},
-		},
-		{
-			"Do not validate protocol, actually",
-			args{
-				"robert://pike.com/",
-			},
-			want{
-				browserUserAgent,
-				"GET",
-				"robert://pike.com/",
-			},
+			false,
 		},
 		{
 			"Full url",
 			args{
-				"http://flibustahezeous3.onion/b/175105",
+				"flibustahezeous3.onion",
+				"b/175105",
+				getHeaders(),
 			},
 			want{
 				browserUserAgent,
 				"GET",
 				"http://flibustahezeous3.onion/b/175105",
 			},
+			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := buildRequest(tt.args.url)
-			if got.URL.String() != tt.want.url {
-				t.Errorf("Got %v, want %v", got.URL, tt.want.url)
+			got, err := buildRequest(tt.args.host, tt.args.path, tt.args.headers)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Search() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
-			if got.UserAgent() != tt.want.userAgent {
-				t.Errorf("Got %v, want %v", got.UserAgent(), tt.want.userAgent)
-			}
-			if got.Method != tt.want.method {
-				t.Errorf("Got %v, want %v", got.Method, tt.want.method)
+			if got != nil {
+				if got.URL.String() != tt.want.url {
+					t.Errorf("Got %v, want %v", got.URL, tt.want.url)
+				}
+				if got.UserAgent() != tt.want.userAgent {
+					t.Errorf("Got %v, want %v", got.UserAgent(), tt.want.userAgent)
+				}
+				if got.Method != tt.want.method {
+					t.Errorf("Got %v, want %v", got.Method, tt.want.method)
+				}
 			}
 		})
 	}
