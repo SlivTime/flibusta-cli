@@ -25,28 +25,28 @@ func Test_buildSearchPath(t *testing.T) {
 		{
 			"Empty",
 			args{""},
-			"/booksearch?ask=&chb=on",
+			"http://flibusta/booksearch?ask=&chb=on",
 		},
 		{
 			"Empty",
 			args{"book"},
-			"/booksearch?ask=book&chb=on",
+			"http://flibusta/booksearch?ask=book&chb=on",
 		},
 		{
 			"Empty",
 			args{"my book"},
-			"/booksearch?ask=my+book&chb=on",
+			"http://flibusta/booksearch?ask=my+book&chb=on",
 		},
 		{
 			"Empty",
 			args{"The book#that^shoud%be&escaped"},
-			"/booksearch?ask=The+book%23that%5Eshoud%25be%26escaped&chb=on",
+			"http://flibusta/booksearch?ask=The+book%23that%5Eshoud%25be%26escaped&chb=on",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotSearchUrl := buildSearchPath(tt.args.searchQuery)
-			if gotSearchUrl != tt.wantSearchUrl {
+			gotSearchUrl := buildSearchUrl(tt.args.searchQuery)
+			if gotSearchUrl.String() != tt.wantSearchUrl {
 				t.Errorf("buildSearchPath() gotSearchUrl = %v, want %v", gotSearchUrl, tt.wantSearchUrl)
 			}
 		})
@@ -69,8 +69,8 @@ func Test_getBaseUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if gotU := getBaseUrl(); !reflect.DeepEqual(gotU, tt.wantU) {
-				t.Errorf("getBaseUrl() = %v, want %v", gotU, tt.wantU)
+			if gotU := getEnvUrl(); !reflect.DeepEqual(gotU, tt.wantU) {
+				t.Errorf("getEnvUrl() = %v, want %v", gotU, tt.wantU)
 			}
 		})
 	}
@@ -169,7 +169,7 @@ func Test_buildDownloadUrl(t *testing.T) {
 				"",
 				"",
 			},
-			want: "/b",
+			want: "http://flibusta/b",
 		},
 		{
 			name: "numbers",
@@ -177,7 +177,7 @@ func Test_buildDownloadUrl(t *testing.T) {
 				"1",
 				"1",
 			},
-			want: "/b/1/1",
+			want: "http://flibusta/b/1/1",
 		},
 		{
 			name: "most common",
@@ -185,7 +185,7 @@ func Test_buildDownloadUrl(t *testing.T) {
 				"123",
 				"mobi",
 			},
-			want: "/b/123/mobi",
+			want: "http://flibusta/b/123/mobi",
 		},
 		{
 			name: "Foobar",
@@ -193,12 +193,12 @@ func Test_buildDownloadUrl(t *testing.T) {
 				"foo",
 				"bar",
 			},
-			want: "/b/foo/bar",
+			want: "http://flibusta/b/foo/bar",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := buildDownloadPath(tt.args.bookId, tt.args.bookFormat); got != tt.want {
+			if got := buildDownloadUrl(tt.args.bookId, tt.args.bookFormat); got.String() != tt.want {
 				t.Errorf("buildDownloadPath() = %v, want %v", got, tt.want)
 			}
 		})
@@ -208,7 +208,7 @@ func Test_buildDownloadUrl(t *testing.T) {
 func Test_buildRequest(t *testing.T) {
 	type args struct {
 		host    string
-		path    string
+		url     *url.URL
 		headers Headers
 	}
 	type want struct {
@@ -226,7 +226,7 @@ func Test_buildRequest(t *testing.T) {
 			"Foo",
 			args{
 				"",
-				"foo",
+				&url.URL{Host: "foo"},
 				getHeaders(),
 			},
 			want{
@@ -240,7 +240,7 @@ func Test_buildRequest(t *testing.T) {
 			"Full host",
 			args{
 				"example.com",
-				"",
+				&url.URL{},
 				getHeaders(),
 			},
 			want{
@@ -254,7 +254,7 @@ func Test_buildRequest(t *testing.T) {
 			"Keep protocol ",
 			args{
 				"https://example.com/",
-				"",
+				&url.URL{},
 				getHeaders(),
 			},
 			want{
@@ -268,7 +268,7 @@ func Test_buildRequest(t *testing.T) {
 			"Full url",
 			args{
 				"flibustahezeous3.onion",
-				"b/175105",
+				&url.URL{Path: "b/175105"},
 				getHeaders(),
 			},
 			want{
@@ -281,7 +281,7 @@ func Test_buildRequest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := buildRequest(tt.args.host, tt.args.path, tt.args.headers)
+			got, err := buildRequest(tt.args.host, tt.args.url, tt.args.headers)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Search() error = %v, wantErr %v", err, tt.wantErr)
 				return

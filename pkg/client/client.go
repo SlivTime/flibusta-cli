@@ -15,7 +15,7 @@ const (
 	defaultScheme      = "http"
 	searchPath         = "/booksearch"
 	downloadPath       = "/b/"
-	browserUserAgent   = "Safari: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36"
+	browserUserAgent   = "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0"
 	defaultProxyScheme = "http"
 	defaultProxyUrl    = "http://localhost:8118"
 )
@@ -61,7 +61,6 @@ func FromEnv() (*FlibustaClient, error) {
 	if !isHttpProxy(proxyUrlString) {
 		return nil, fmt.Errorf("%s does not contain defaultScheme (http or https)", proxyUrlString)
 	}
-
 	proxyUrl, err := url.Parse(proxyUrlString)
 	if err != nil {
 		err = errors.New("invalid FLIBUSTA_PROXY_URL")
@@ -83,7 +82,7 @@ type ResponseResult struct {
 }
 
 // Fetch all known mirrors and return first response
-func executeRequest(client *http.Client, path string, headers Headers) (*http.Response, error) {
+func executeRequest(client *http.Client, url *url.URL, headers Headers) (*http.Response, error) {
 	mirrors := FlibustaMirrors
 	envHost := getEnvHost()
 	if envHost != "" {
@@ -91,7 +90,7 @@ func executeRequest(client *http.Client, path string, headers Headers) (*http.Re
 	}
 	result := make(chan *ResponseResult)
 	for _, host := range mirrors {
-		req, err := buildRequest(host, path, headers)
+		req, err := buildRequest(host, url, headers)
 		if err != nil {
 			continue
 		}
@@ -118,15 +117,15 @@ func executeRequest(client *http.Client, path string, headers Headers) (*http.Re
 			return rr.Response, nil
 		}
 	}
-	return nil, errors.New("All request attempts failed")
+	return nil, fmt.Errorf("All request attempts failed. Maybe you want to use some proxy? For example:\n\n\t%s", TorproxySuggest)
 }
 
 func (c *FlibustaClient) Search(searchQuery string, respProcessor func(stream io.Reader) (*[]ListItem, error)) (result *[]ListItem, err error) {
-	searchPath := buildSearchPath(searchQuery)
+	searchUrl := buildSearchUrl(searchQuery)
 	headers := getHeaders()
-	log.Printf("Search Flibusta for `%s`", searchPath)
+	log.Printf("Search Flibusta for `%s`", searchUrl.String())
 
-	resp, err := executeRequest(c.httpClient, searchPath, headers)
+	resp, err := executeRequest(c.httpClient, searchUrl, headers)
 	if err != nil {
 		return
 	}
@@ -139,12 +138,12 @@ func (c *FlibustaClient) Download(id string, bookFormat string) (result *Downloa
 	if err != nil {
 		return
 	}
-	bookPath := buildDownloadPath(id, bookFormat)
+	bookUrl := buildDownloadUrl(id, bookFormat)
 	headers := getHeaders()
 
-	log.Printf("Download file by id: `%s`", bookPath)
+	log.Printf("Download file by id: `%s`", bookUrl.String())
 
-	resp, err := executeRequest(c.httpClient, bookPath, headers)
+	resp, err := executeRequest(c.httpClient, bookUrl, headers)
 
 	if err != nil {
 		return
@@ -160,12 +159,12 @@ func (c *FlibustaClient) Download(id string, bookFormat string) (result *Downloa
 }
 
 func (c *FlibustaClient) Info(id string, respProcessor func(stream io.Reader) (result *InfoResult, err error)) (result *InfoResult, err error) {
-	infoPath := buildInfoPath(id)
+	infoUrl := buildInfoUrl(id)
 	headers := getHeaders()
 
-	log.Printf("Download file by id: `%s`", infoPath)
+	log.Printf("Download file by id: `%s`", infoUrl.String())
 
-	resp, err := executeRequest(c.httpClient, infoPath, headers)
+	resp, err := executeRequest(c.httpClient, infoUrl, headers)
 	if err != nil {
 		return
 	}

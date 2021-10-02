@@ -30,7 +30,7 @@ func ResponseWithRequestPath(req *http.Request) *http.Response {
 	return &http.Response{
 		StatusCode: 200,
 		// Send response to be tested
-		Body: ioutil.NopCloser(bytes.NewBufferString(req.URL.Path)),
+		Body: ioutil.NopCloser(bytes.NewBufferString(req.URL.String())),
 		// Must be set to non-nil value or it panics
 		Header: make(http.Header),
 	}
@@ -82,7 +82,7 @@ func TestFlibustaClient_Download(t *testing.T) {
 
 			&DownloadResult{
 				Name: "",
-				File: []byte("/b/123/mobi"),
+				File: []byte("http://test.host/b/123/mobi"),
 			},
 			false,
 		},
@@ -150,7 +150,7 @@ func TestFlibustaClient_Search(t *testing.T) {
 
 			want{
 				successSearchTestResult,
-				"/booksearch?ask=test&chb=on",
+				"http://test.host/booksearch?ask=test&chb=on",
 			},
 			false,
 		},

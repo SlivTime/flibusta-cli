@@ -13,5 +13,6 @@ var (
 		"flibusta.site",
 		"flibustahezeous3.onion",
 	}
-	validFormats = []string{Fb2, Epub, Mobi}
+	validFormats    = []string{Fb2, Epub, Mobi}
+	TorproxySuggest = `docker run -it -p 8118:8118 -p 9050:9050 -d dperson/torproxy`
 )

@@ -19,36 +19,43 @@ func getEnvHost() string {
 	return os.Getenv(FlibustaHostEnvKey)
 }
 
-func getBaseUrl() (u *url.URL) {
+func getEnvUrl() (u *url.URL) {
 	return &url.URL{
 		Host:   getEnvHost(),
 		Scheme: defaultScheme,
 	}
 }
 
-func buildSearchPath(searchQuery string) string {
-	u := url.URL{}
+func getBaseUrl() (u *url.URL) {
+	return &url.URL{
+		Host:   "flibusta",
+		Scheme: defaultScheme,
+	}
+}
+
+func buildSearchUrl(searchQuery string) *url.URL {
+	u := getBaseUrl()
 	u.Path = searchPath
 	q := u.Query()
 	q.Set("ask", searchQuery)
 	q.Set("chb", "on") // Search only books
 	u.RawQuery = q.Encode()
-	return u.String()
+	return u
 }
 
-func buildDownloadPath(bookId string, bookFormat string) string {
-	u := url.URL{}
+func buildDownloadUrl(bookId string, bookFormat string) *url.URL {
+	u := getBaseUrl()
 	u.Path = path.Join(downloadPath, bookId, bookFormat)
-	return u.String()
+	return u
 }
 
-func buildInfoPath(bookId string) string {
-	u := url.URL{}
+func buildInfoUrl(bookId string) *url.URL {
+	u := getBaseUrl()
 	u.Path = path.Join(downloadPath, bookId)
-	return u.String()
+	return u
 }
 
-func buildRequest(host string, path string, headers Headers) (*http.Request, error) {
+func buildRequest(host string, url *url.URL, headers Headers) (*http.Request, error) {
 	match := HostRe.FindStringSubmatch(host)
 	if match == nil {
 		return nil, errors.New("Cannot parse host")
@@ -57,13 +64,11 @@ func buildRequest(host string, path string, headers Headers) (*http.Request, err
 	if scheme == "" {
 		scheme = defaultScheme
 	}
+	cleanHost := match[3]
 
-	u := url.URL{
-		Scheme: scheme,
-		Host:   match[3],
-		Path:   path,
-	}
-	req, _ := http.NewRequest("GET", u.String(), nil)
+	url.Scheme = scheme
+	url.Host = cleanHost
+	req, _ := http.NewRequest("GET", url.String(), nil)
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
