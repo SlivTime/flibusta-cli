@@ -300,3 +300,50 @@ func Test_buildRequest(t *testing.T) {
 		})
 	}
 }
+
+func Test_buildInfoUrl(t *testing.T) {
+	type args struct {
+		bookId string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "empty",
+			args: args{
+				"",
+			},
+			want: "http://flibusta/b",
+		},
+		{
+			name: "numbers",
+			args: args{
+				"1",
+			},
+			want: "http://flibusta/b/1",
+		},
+		{
+			name: "most common",
+			args: args{
+				"123",
+			},
+			want: "http://flibusta/b/123",
+		},
+		{
+			name: "Foobar",
+			args: args{
+				"foo",
+			},
+			want: "http://flibusta/b/foo",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := buildInfoUrl(tt.args.bookId); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("buildInfoUrl() = %v, want %v", got.String(), tt.want)
+			}
+		})
+	}
+}
