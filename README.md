@@ -23,14 +23,11 @@ All configuration can be done via Environment, but it should work with Torproxy 
 > go get -u github.com/slivtime/flibusta-cli@latest
 > cd flibusta-cli
 
-# Copy example configuration to where you store your environment. I use .zshenv for it.
-> cd $GOPATH/pkg/mod/github.com/slivtime/flibusta-cli@[...version...]  
-> cat example.env >> ~/.zshenv
-> source ~/.zshenv
-
 # Check
 > flibusta-cli search Война и мир
 > flibusta-cli info 175105
 > flibusta-cli get 175105
 ```
 
+## Configuration
+You can configure this utility by changing environment variables. Example can be seen [here](https://github.com/SlivTime/flibusta-cli/blob/main/example.env). 

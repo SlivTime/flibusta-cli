@@ -12,18 +12,13 @@ import (
 )
 
 const (
-	scheme             = "http"
+	defaultScheme      = "http"
 	searchPath         = "/booksearch"
 	downloadPath       = "/b/"
-	browserUserAgent   = "Safari: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36"
-	Fb2                = "fb2"
-	Epub               = "epub"
-	Mobi               = "mobi"
+	browserUserAgent   = "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0"
 	defaultProxyScheme = "http"
 	defaultProxyUrl    = "http://localhost:8118"
 )
-
-var validFormats = []string{Fb2, Epub, Mobi}
 
 type FlibustaClient struct {
 	httpClient *http.Client
@@ -66,7 +61,6 @@ func FromEnv() (*FlibustaClient, error) {
 	if !isHttpProxy(proxyUrlString) {
 		return nil, fmt.Errorf("%s does not contain scheme (http or https)", proxyUrlString)
 	}
-
 	proxyUrl, err := url.Parse(proxyUrlString)
 	if err != nil {
 		err = errors.New("invalid FLIBUSTA_PROXY_URL")
@@ -81,12 +75,57 @@ func FromEnv() (*FlibustaClient, error) {
 	return &client, nil
 }
 
+type ResponseResult struct {
+	Host     string
+	Response *http.Response
+	Error    error
+}
+
+// Fetch all known mirrors and return first response
+func executeRequest(client *http.Client, url *url.URL, headers Headers) (*http.Response, error) {
+	mirrors := FlibustaMirrors
+	envHost := getEnvHost()
+	if envHost != "" {
+		mirrors = append(mirrors, envHost)
+	}
+	result := make(chan *ResponseResult)
+	for _, host := range mirrors {
+		req, err := buildRequest(host, url, headers)
+		if err != nil {
+			continue
+		}
+		go func(r *http.Request, h string, out chan *ResponseResult) {
+			resp, err := client.Do(r)
+			out <- &ResponseResult{
+				Host:     h,
+				Response: resp,
+				Error:    err,
+			}
+		}(req, host, result)
+	}
+	for i := 0; i < len(mirrors); i++ {
+		rr := <-result
+		if rr.Error != nil {
+			log.Println(rr.Error)
+		} else if rr.Response.StatusCode != 200 {
+			// TODO: should handle this?
+			bodyBytes, _ := io.ReadAll(rr.Response.Body)
+			body := string(bodyBytes)
+			log.Println(body)
+			defer rr.Response.Body.Close()
+		} else {
+			return rr.Response, nil
+		}
+	}
+	return nil, fmt.Errorf("All request attempts failed. Maybe you want to use some proxy? For example:\n\n\t%s", TorproxySuggest)
+}
+
 func (c *FlibustaClient) Search(searchQuery string, respProcessor func(stream io.Reader) (*[]ListItem, error)) (result *[]ListItem, err error) {
 	searchUrl := buildSearchUrl(searchQuery)
-	req := buildRequest(searchUrl)
-	log.Printf("Search Flibusta for `%s`", searchUrl)
+	headers := getHeaders()
+	log.Printf("Search Flibusta for `%s`", searchUrl.String())
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := executeRequest(c.httpClient, searchUrl, headers)
 	if err != nil {
 		return
 	}
@@ -100,11 +139,11 @@ func (c *FlibustaClient) Download(id string, bookFormat string) (result *Downloa
 		return
 	}
 	bookUrl := buildDownloadUrl(id, bookFormat)
-	req := buildRequest(bookUrl)
+	headers := getHeaders()
 
-	log.Printf("Download file by id: `%s`", bookUrl)
+	log.Printf("Download file by id: `%s`", bookUrl.String())
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := executeRequest(c.httpClient, bookUrl, headers)
 
 	if err != nil {
 		return
@@ -120,12 +159,12 @@ func (c *FlibustaClient) Download(id string, bookFormat string) (result *Downloa
 }
 
 func (c *FlibustaClient) Info(id string, respProcessor func(stream io.Reader) (result *InfoResult, err error)) (result *InfoResult, err error) {
-	bookUrl := buildInfoUrl(id)
-	req := buildRequest(bookUrl)
+	infoUrl := buildInfoUrl(id)
+	headers := getHeaders()
 
-	log.Printf("Download file by id: `%s`", bookUrl)
+	log.Printf("Download file by id: `%s`", infoUrl.String())
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := executeRequest(c.httpClient, infoUrl, headers)
 	if err != nil {
 		return
 	}
